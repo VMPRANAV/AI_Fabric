@@ -12,6 +12,8 @@ from app.models.feedback import FeedbackRecord
 
 from app.schemas.prompt import PromptProcessRequest
 from app.services.prompt_gateway.service import prompt_gateway_service
+from app.schemas.analyzer import QueryAnalysisRequest
+from app.services.query_analyzer.service import query_analyzer_service
 
 router = APIRouter()
 
@@ -57,20 +59,35 @@ async def execute_query(req: QueryRequest, db: AsyncSession = Depends(get_db)):
         timestamp=t0
     ))
 
-    # 2. Query Analyzer Stage (Consuming validated, normalized prompt)
+    # 2. Query Analyzer Stage (Consuming normalized prompt output from Prompt Gateway Layer 1)
     t1 = datetime.utcnow().isoformat() + "Z"
-    task_type = "sql_analysis_optimization" if is_sql_task else "general_reasoning"
-    complexity = 0.85 if is_sql_task else 0.45
-    requires_tool = "github_mcp" if is_sql_task else None
+    analysis_res = query_analyzer_service.analyze(
+        QueryAnalysisRequest(
+            query=prompt_proc.normalized_query,
+            budget=req.budget,
+            category_hint=prompt_category
+        )
+    )
+    task_type = analysis_res.task_type
+    complexity = analysis_res.complexity
+    tool_required = analysis_res.tool_required
+    tool_type = analysis_res.tool_type
+    requires_tool = tool_type if tool_required else None
     
     traces.append(ExecutionStageTrace(
         stage="Query Analyzer",
         status="completed",
         details={
             "task_type": task_type,
+            "task_type_idx": analysis_res.task_type_idx,
             "complexity": complexity,
-            "requires_tool": requires_tool,
-            "reasoning_required": "high" if complexity > 0.7 else "medium"
+            "complexity_factors": analysis_res.complexity_factors,
+            "budget": analysis_res.budget,
+            "latency_target": analysis_res.latency_target,
+            "tool_required": tool_required,
+            "tool_type": tool_type,
+            "reasoning_required": analysis_res.reasoning_required,
+            "state_vector": analysis_res.state_vector
         },
         timestamp=t1
     ))

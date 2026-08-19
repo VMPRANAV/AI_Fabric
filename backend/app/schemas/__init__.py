@@ -9,6 +9,7 @@ from app.schemas.prompt import (
     TemplateMetadata,
     TemplateDetailResponse
 )
+from app.schemas.analyzer import QueryAnalysisRequest, QueryAnalysisResponse
 
 __all__ = [
     "QueryRequest",
@@ -23,4 +24,6 @@ __all__ = [
     "PromptProcessResponse",
     "TemplateMetadata",
     "TemplateDetailResponse",
+    "QueryAnalysisRequest",
+    "QueryAnalysisResponse",
 ]
