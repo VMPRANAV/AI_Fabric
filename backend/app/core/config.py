@@ -18,10 +18,18 @@ class Settings(BaseSettings):
         description="Async connection string (e.g., Supabase postgresql+asyncpg://... or sqlite+aiosqlite:///...)"
     )
     
-    # LLM Providers
+    # LLM Providers & Model Profiles
     GROQ_API_KEY: Optional[str] = None
+    MODEL_PROVIDER: str = "mock"  # 'groq' or 'mock'
+    MODEL_FALLBACK_ENABLED: bool = False
     
-    # MCP GitHub
+    # Configurable Generation Model Profiles
+    AI_MODEL_FAST: str = "openai/gpt-oss-20b"
+    AI_MODEL_BALANCED: str = "openai/gpt-oss-20b"
+    AI_MODEL_REASONING: str = "openai/gpt-oss-120b"
+    AI_MODEL_MOCK: str = "mock-deterministic-v1"
+    
+    # MCP Settings
     GITHUB_TOKEN: Optional[str] = None
     MCP_GITHUB_MODE: str = "mock"  # 'mock' or 'live'
     

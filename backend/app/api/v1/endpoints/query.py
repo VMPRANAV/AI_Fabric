@@ -14,6 +14,9 @@ from app.schemas.prompt import PromptProcessRequest
 from app.services.prompt_gateway.service import prompt_gateway_service
 from app.schemas.analyzer import QueryAnalysisRequest
 from app.services.query_analyzer.service import query_analyzer_service
+from app.services.decision_engine.rule_based import rule_based_decision_engine
+from app.services.model_gateway.gateway import model_gateway
+from app.services.prompt_gateway.renderer import SafeTemplateRenderer
 
 router = APIRouter()
 
@@ -92,33 +95,42 @@ async def execute_query(req: QueryRequest, db: AsyncSession = Depends(get_db)):
         timestamp=t1
     ))
 
-    # 3. Decision Engine Stage
+    # 3. Decision Engine Stage (Layer 3 — Deterministic Rule-Based Policy)
     t2 = datetime.utcnow().isoformat() + "Z"
-    selected_model = "llama-3.3-70b-versatile" if complexity > 0.6 else "llama-3.1-8b-instant"
-    selected_prompt = f"{prompt_category}_{prompt_version}"
-    decision_source = req.routing_strategy or "rule_based"
+    decision = rule_based_decision_engine.route(analysis_res, request_id=request_id)
 
     traces.append(ExecutionStageTrace(
         stage="Decision Engine",
         status="completed",
         details={
-            "decision_source": decision_source,
-            "selected_model": selected_model,
-            "prompt_template": selected_prompt,
-            "selected_tool": requires_tool,
-            "reason": f"Complexity {complexity:.2f} routed to {selected_model}"
+            "decision_source": decision.decision_source,
+            "selected_model": decision.selected_model,
+            "model_profile": decision.model_profile,
+            "prompt_category": decision.prompt_category,
+            "prompt_version": decision.prompt_version,
+            "tool_required": decision.tool_required,
+            "tool_type": decision.tool_type,
+            "decision_reason": decision.decision_reason,
+            "state_vector": decision.state_vector
         },
         timestamp=t2
     ))
 
-    # 4. MCP Gateway Stage
+    # 4. Prompt Gateway (Renders Selected Template & Version)
+    template_text, _ = prompt_gateway_service.get_template(decision.prompt_category, decision.prompt_version)
+    final_prompt, _, _ = SafeTemplateRenderer.render(
+        template_text=template_text,
+        variables={"query": req.query, "context": "Live request execution context"},
+        strict=False
+    )
+
+    # 5. MCP Gateway Stage (Preserved Tool Requirement — MCP Execution in later milestone)
     t3 = datetime.utcnow().isoformat() + "Z"
     mcp_details = {
-        "mcp_server": "github_mcp",
-        "tool_invoked": "search_repository",
-        "status": "success",
-        "files_retrieved": ["src/db/queries.py", "schema.sql"]
-    } if requires_tool else {"status": "skipped", "reason": "no_tool_required"}
+        "mcp_server": decision.tool_type,
+        "tool_required": decision.tool_required,
+        "status": "pending_mcp_milestone" if decision.tool_required else "skipped"
+    }
 
     traces.append(ExecutionStageTrace(
         stage="MCP Gateway",
@@ -127,45 +139,35 @@ async def execute_query(req: QueryRequest, db: AsyncSession = Depends(get_db)):
         timestamp=t3
     ))
 
-    # 5. Model Gateway & Execution
+    # 6. Model Gateway & Execution
     t4 = datetime.utcnow().isoformat() + "Z"
-    elapsed_ms = (time.perf_counter() - start_time) * 1000.0 + 120.0  # Simulated latency for M1
-    input_tokens = 620
-    output_tokens = 340
-    total_tokens = input_tokens + output_tokens
-    estimated_cost = (input_tokens * 0.00059 / 1000.0) + (output_tokens * 0.00079 / 1000.0)
+    exec_res = await model_gateway.execute(
+        prompt=final_prompt,
+        model=decision.selected_model,
+        model_profile=decision.model_profile
+    )
     
-    response_text = (
-        "### SQL Analysis & Optimization Result\n\n"
-        "**Identified Bottleneck**:\n"
-        "The query in `src/db/queries.py` performs a full table scan on `orders` using `SELECT * FROM orders WHERE status = 'pending' ORDER BY created_at DESC;` without a composite index on `(status, created_at)`.\n\n"
-        "**Optimized SQL**:\n"
-        "```sql\n"
-        "CREATE INDEX idx_orders_status_created ON orders (status, created_at DESC);\n\n"
-        "SELECT id, user_id, amount, created_at\n"
-        "FROM orders\n"
-        "WHERE status = 'pending'\n"
-        "ORDER BY created_at DESC\n"
-        "LIMIT 100;\n"
-        "```\n\n"
-        "**Improvement**:\n"
-        "- Eliminates unindexed Sequential Scan\n"
-        "- Reduces execution time from ~420ms to ~3.8ms on 1M rows."
-    ) if is_sql_task else f"AI Fabric response generated via {selected_model} for query: {req.query}"
+    elapsed_ms = exec_res.latency_ms
+    input_tokens = exec_res.input_tokens
+    output_tokens = exec_res.output_tokens
+    total_tokens = exec_res.total_tokens
+    estimated_cost = exec_res.estimated_cost
+    response_text = exec_res.content if exec_res.success else f"Error executing model: {exec_res.error_type}"
 
     traces.append(ExecutionStageTrace(
         stage="Model Gateway",
-        status="completed",
+        status="completed" if exec_res.success else "failed",
         details={
-            "model": selected_model,
-            "provider": "groq",
-            "latency_ms": round(elapsed_ms, 2),
-            "tokens": total_tokens
+            "model": exec_res.model,
+            "model_profile": exec_res.model_profile,
+            "provider": exec_res.provider,
+            "latency_ms": exec_res.latency_ms,
+            "tokens": exec_res.total_tokens,
+            "cost_usd": exec_res.estimated_cost,
+            "success": exec_res.success
         },
         timestamp=t4
     ))
-
-    # 6. Observability & Feedback
     t5 = datetime.utcnow().isoformat() + "Z"
     quality_score = 0.94
     latency_penalty = 0.08
@@ -184,6 +186,10 @@ async def execute_query(req: QueryRequest, db: AsyncSession = Depends(get_db)):
         },
         timestamp=t5
     ))
+
+    selected_model = decision.selected_model
+    selected_prompt = f"{decision.prompt_category}_{decision.prompt_version}"
+    decision_source = decision.decision_source
 
     # Persist to Database
     try:
@@ -216,7 +222,7 @@ async def execute_query(req: QueryRequest, db: AsyncSession = Depends(get_db)):
             total_tokens=total_tokens,
             estimated_cost=estimated_cost,
             tool_success=True,
-            success=True
+            success=exec_res.success
         )
         db.add(metrics_record)
 
@@ -233,7 +239,6 @@ async def execute_query(req: QueryRequest, db: AsyncSession = Depends(get_db)):
         await db.commit()
     except Exception as e:
         await db.rollback()
-        # Non-fatal for response return, but log
         print(f"DB persist error: {e}")
 
     return QueryResponse(
