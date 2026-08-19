@@ -2,39 +2,40 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from typing import List, Dict, Any
-from ....core.database import get_db
-from ....models.llm_model import LLMModelRecord
+from app.core.database import get_db
+from app.models.llm_model import LLMModelRecord
 
 router = APIRouter()
 
 DEFAULT_MODELS = [
     {
-        "name": "llama-3.1-8b-instant",
-        "provider": "groq",
-        "tier": "fast",
-        "cost_per_1k_prompt_tokens": 0.00005,
-        "cost_per_1k_completion_tokens": 0.00008,
-        "max_context_window": 128000,
-        "is_active": True
-    },
-    {
-        "name": "llama-3.3-70b-versatile",
-        "provider": "groq",
-        "tier": "balanced",
-        "cost_per_1k_prompt_tokens": 0.00059,
-        "cost_per_1k_completion_tokens": 0.00079,
-        "max_context_window": 128000,
-        "is_active": True
-    },
-    {
-        "name": "deepseek-r1-distill-llama-70b",
-        "provider": "groq",
-        "tier": "reasoning",
-        "cost_per_1k_prompt_tokens": 0.00059,
-        "cost_per_1k_completion_tokens": 0.00079,
-        "max_context_window": 128000,
-        "is_active": True
-    },
+  "name": "meta-llama/llama-prompt-guard-2-86m",
+  "provider": "groq",
+  "tier": "fast",
+  "cost_per_1k_prompt_tokens": 0.00004,
+  "cost_per_1k_completion_tokens": 0.00004,
+  "max_context_window": 512,
+  "is_active": True
+},
+{
+  "name": "meta-llama/llama-prompt-guard-2-22m",
+  "provider": "groq",
+  "tier": "fast",
+  "cost_per_1k_prompt_tokens": 0.00003,
+  "cost_per_1k_completion_tokens": 0.00003,
+  "max_context_window": 512,
+  "is_active": True
+},
+{
+  "name": "openai/gpt-oss-120b",
+  "provider": "groq",
+  "tier": "reasoning",
+  "cost_per_1k_prompt_tokens": 0.00015,
+  "cost_per_1k_completion_tokens": 0.00060,
+  "max_context_window": 131072,
+  "is_active": True
+},
+
     {
         "name": "mock-deterministic-v1",
         "provider": "mock",

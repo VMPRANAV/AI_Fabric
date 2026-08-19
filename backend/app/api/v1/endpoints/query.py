@@ -10,22 +10,55 @@ from app.models.routing import RoutingDecisionRecord
 from app.models.metrics import ExecutionMetricRecord
 from app.models.feedback import FeedbackRecord
 
+from app.schemas.prompt import PromptProcessRequest
+from app.services.prompt_gateway.service import prompt_gateway_service
+
 router = APIRouter()
 
 @router.post("/query", response_model=QueryResponse, summary="Execute AI Fabric Query Pipeline")
 async def execute_query(req: QueryRequest, db: AsyncSession = Depends(get_db)):
     """
     Core entrypoint for user queries.
-    In Milestone 1, executes a verifiable end-to-end pipeline trace and records
-    request, routing decision, telemetry metrics, and feedback into the database.
+    Executes the layered control plane pipeline:
+    Prompt Gateway (Layer 1) ➜ Query Analyzer ➜ Decision Engine ➜ Gateways ➜ Observability & Feedback.
     """
     request_id = str(uuid.uuid4())
     start_time = time.perf_counter()
     traces = []
 
-    # 1. Query Analyzer Stage
+    # 1. Prompt Gateway Stage (First Operational Layer)
     t0 = datetime.utcnow().isoformat() + "Z"
     is_sql_task = "sql" in req.query.lower() or "github" in req.query.lower()
+    prompt_category = "sql_analysis" if is_sql_task else "general_assistant"
+    prompt_version = "v1"
+
+    prompt_proc = prompt_gateway_service.process(
+        PromptProcessRequest(
+            query=req.query,
+            category=prompt_category,
+            version=prompt_version,
+            variables={"query": req.query, "context": "Live request context"}
+        )
+    )
+
+    traces.append(ExecutionStageTrace(
+        stage="Prompt Gateway",
+        status="completed" if prompt_proc.safety.is_valid else "failed",
+        details={
+            "is_valid": prompt_proc.safety.is_valid,
+            "is_safe": prompt_proc.safety.is_safe,
+            "risk_level": prompt_proc.safety.risk_level,
+            "violations": prompt_proc.safety.violations,
+            "template_category": prompt_proc.template_category,
+            "version": prompt_proc.version,
+            "character_count": prompt_proc.safety.character_count,
+            "variables_injected": list(prompt_proc.variables_used.keys())
+        },
+        timestamp=t0
+    ))
+
+    # 2. Query Analyzer Stage (Consuming validated, normalized prompt)
+    t1 = datetime.utcnow().isoformat() + "Z"
     task_type = "sql_analysis_optimization" if is_sql_task else "general_reasoning"
     complexity = 0.85 if is_sql_task else 0.45
     requires_tool = "github_mcp" if is_sql_task else None
@@ -39,13 +72,13 @@ async def execute_query(req: QueryRequest, db: AsyncSession = Depends(get_db)):
             "requires_tool": requires_tool,
             "reasoning_required": "high" if complexity > 0.7 else "medium"
         },
-        timestamp=t0
+        timestamp=t1
     ))
 
-    # 2. Decision Engine Stage
-    t1 = datetime.utcnow().isoformat() + "Z"
+    # 3. Decision Engine Stage
+    t2 = datetime.utcnow().isoformat() + "Z"
     selected_model = "llama-3.3-70b-versatile" if complexity > 0.6 else "llama-3.1-8b-instant"
-    selected_prompt = "sql_optimization_v1" if is_sql_task else "general_assistant_v1"
+    selected_prompt = f"{prompt_category}_{prompt_version}"
     decision_source = req.routing_strategy or "rule_based"
 
     traces.append(ExecutionStageTrace(
@@ -57,20 +90,6 @@ async def execute_query(req: QueryRequest, db: AsyncSession = Depends(get_db)):
             "prompt_template": selected_prompt,
             "selected_tool": requires_tool,
             "reason": f"Complexity {complexity:.2f} routed to {selected_model}"
-        },
-        timestamp=t1
-    ))
-
-    # 3. Prompt Gateway Stage
-    t2 = datetime.utcnow().isoformat() + "Z"
-    traces.append(ExecutionStageTrace(
-        stage="Prompt Gateway",
-        status="completed",
-        details={
-            "template": selected_prompt,
-            "version": "1.0",
-            "safety_check": "passed",
-            "variables_injected": ["query", "schema", "query_plan"]
         },
         timestamp=t2
     ))

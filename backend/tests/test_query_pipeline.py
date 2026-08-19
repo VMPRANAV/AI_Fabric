@@ -14,9 +14,9 @@ async def test_execute_query_pipeline(client):
     assert data["task_type"] == "sql_analysis_optimization"
     assert data["complexity"] > 0.8
     assert len(data["trace"]) == 6
-    assert data["trace"][0]["stage"] == "Query Analyzer"
-    assert data["trace"][1]["stage"] == "Decision Engine"
-    assert data["trace"][2]["stage"] == "Prompt Gateway"
+    assert data["trace"][0]["stage"] == "Prompt Gateway"
+    assert data["trace"][1]["stage"] == "Query Analyzer"
+    assert data["trace"][2]["stage"] == "Decision Engine"
     assert data["trace"][3]["stage"] == "MCP Gateway"
     assert data["trace"][4]["stage"] == "Model Gateway"
     assert data["trace"][5]["stage"] == "Observability & Feedback"
