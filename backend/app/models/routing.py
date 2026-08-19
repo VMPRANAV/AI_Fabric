@@ -1,0 +1,21 @@
+import uuid
+from datetime import datetime
+from sqlalchemy import Column, String, DateTime, ForeignKey, JSON
+from sqlalchemy.orm import relationship
+from app.core.database import Base
+
+class RoutingDecisionRecord(Base):
+    __tablename__ = "routing_decisions"
+
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    request_id = Column(String(36), ForeignKey("requests.id", ondelete="CASCADE"), nullable=False)
+    selected_model = Column(String(100), nullable=False)
+    prompt_version = Column(String(50), nullable=True)
+    selected_tool = Column(String(50), nullable=True)
+    selected_resource = Column(String(50), default="node-1")
+    decision_source = Column(String(50), default="rule_based")  # 'rule_based', 'ppo', 'federated'
+    decision_metadata = Column(JSON, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    # Relationships
+    request = relationship("RequestRecord", back_populates="routing_decision")
