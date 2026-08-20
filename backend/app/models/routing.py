@@ -1,8 +1,8 @@
 import uuid
 from datetime import datetime
-from sqlalchemy import Column, String, DateTime, ForeignKey, JSON
+from sqlalchemy import Column, String, DateTime, ForeignKey, JSON, Integer, Float, Boolean
 from sqlalchemy.orm import relationship
-from app.core.database import Base
+from ..core.database import Base
 
 class RoutingDecisionRecord(Base):
     __tablename__ = "routing_decisions"
@@ -14,6 +14,15 @@ class RoutingDecisionRecord(Base):
     selected_tool = Column(String(50), nullable=True)
     selected_resource = Column(String(50), default="node-1")
     decision_source = Column(String(50), default="rule_based")  # 'rule_based', 'ppo', 'federated'
+    # PPO columns
+    policy = Column(String(50), nullable=True)
+    action = Column(Integer, nullable=True)
+    reward = Column(Float, nullable=True)
+    state_vector = Column(JSON, nullable=True)
+    quality = Column(Float, nullable=True)
+    latency_ms = Column(Float, nullable=True)
+    cost = Column(Float, nullable=True)
+    tool_success = Column(Boolean, nullable=True)
     decision_metadata = Column(JSON, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
 

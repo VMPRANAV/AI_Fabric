@@ -1,8 +1,8 @@
 from typing import AsyncGenerator
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
 from sqlalchemy.orm import DeclarativeBase
-from app.core.config import settings
-from app.core.logging import logger
+from .config import settings
+from .logging import logger
 
 class Base(DeclarativeBase):
     pass
@@ -46,7 +46,7 @@ async def init_db() -> None:
     try:
         async with engine.begin() as conn:
             # Import models to ensure they are registered with Base.metadata
-            import app.models  # noqa
+            import models  # noqa
             await conn.run_sync(Base.metadata.create_all)
         logger.info("Database tables verified/created successfully.")
     except Exception as e:

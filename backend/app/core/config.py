@@ -28,6 +28,13 @@ class Settings(BaseSettings):
     AI_MODEL_BALANCED: str = "openai/gpt-oss-20b"
     AI_MODEL_REASONING: str = "openai/gpt-oss-120b"
     AI_MODEL_MOCK: str = "mock-deterministic-v1"
+    # PPO configuration
+    DECISION_POLICY: str = "rule_based"
+    PPO_ALPHA: float = 0.40
+    PPO_BETA: float = 0.20
+    PPO_GAMMA: float = 0.20
+    PPO_DELTA: float = 0.20
+    PPO_SEED: int = 42
     
     # MCP Settings
     GITHUB_TOKEN: Optional[str] = None

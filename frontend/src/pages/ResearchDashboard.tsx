@@ -11,6 +11,7 @@ import {
   CheckCircle2,
   RefreshCw 
 } from 'lucide-react';
+import PpoDashboard from '../components/PpoDashboard';
 
 export const ResearchDashboard: React.FC = () => {
   const [summary, setSummary] = useState<MetricsSummary | null>(null);
@@ -124,6 +125,8 @@ export const ResearchDashboard: React.FC = () => {
             Research Evaluation
           </span>
         </h3>
+        {/* PPO Dashboard inserted below policy table */}
+        <PpoDashboard />
 
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs font-mono">

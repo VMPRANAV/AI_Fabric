@@ -3,20 +3,21 @@ import time
 from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.core.database import get_db
-from app.schemas.query import QueryRequest, QueryResponse, ExecutionStageTrace
-from app.models.request import RequestRecord
-from app.models.routing import RoutingDecisionRecord
-from app.models.metrics import ExecutionMetricRecord
-from app.models.feedback import FeedbackRecord
+# pyrefly: ignore [missing-import]
+from ....core.database import get_db
+from ....schemas.query import QueryRequest, QueryResponse, ExecutionStageTrace
+from ....models.request import RequestRecord
+from ....models.routing import RoutingDecisionRecord
+from ....models.metrics import ExecutionMetricRecord
+from ....models.feedback import FeedbackRecord
 
-from app.schemas.prompt import PromptProcessRequest
-from app.services.prompt_gateway.service import prompt_gateway_service
-from app.schemas.analyzer import QueryAnalysisRequest
-from app.services.query_analyzer.service import query_analyzer_service
-from app.services.decision_engine.rule_based import rule_based_decision_engine
-from app.services.model_gateway.gateway import model_gateway
-from app.services.prompt_gateway.renderer import SafeTemplateRenderer
+from ....schemas.prompt import PromptProcessRequest
+from ....services.prompt_gateway.service import prompt_gateway_service
+from ....schemas.analyzer import QueryAnalysisRequest
+from ....services.query_analyzer.service import query_analyzer_service
+from ....services.decision_engine.model_selector import get_decision_engine
+from ....services.model_gateway.gateway import model_gateway
+from ....services.prompt_gateway.renderer import SafeTemplateRenderer
 
 router = APIRouter()
 
@@ -97,7 +98,9 @@ async def execute_query(req: QueryRequest, db: AsyncSession = Depends(get_db)):
 
     # 3. Decision Engine Stage (Layer 3 — Deterministic Rule-Based Policy)
     t2 = datetime.utcnow().isoformat() + "Z"
-    decision = rule_based_decision_engine.route(analysis_res, request_id=request_id)
+    # Select appropriate decision engine based on configuration (rule based or PPO)
+    decision_engine = get_decision_engine()
+    decision = decision_engine.route(analysis_res, request_id=request_id)
 
     traces.append(ExecutionStageTrace(
         stage="Decision Engine",
