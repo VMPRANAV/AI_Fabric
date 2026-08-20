@@ -31,7 +31,17 @@ class Settings(BaseSettings):
     
     # MCP Settings
     GITHUB_TOKEN: Optional[str] = None
+    MCP_PROVIDER: str = "mock"  # 'mock' or 'github'
     MCP_GITHUB_MODE: str = "mock"  # 'mock' or 'live'
+    GITHUB_ALLOWED_REPOS: str = "pranavvm/AI-Fabric,owner/repo,username/repository-name,owner1/repo1,owner2/repo2"
+    GITHUB_ALLOW_ALL: bool = False
+    MCP_TOOL_TIMEOUT_SECONDS: int = 10
+    ALLOWED_MCP_TOOLS: list[str] = [
+        "github_mcp.list_files",
+        "github_mcp.get_file",
+        "github_mcp.search_code",
+        "github_mcp.get_repo_structure"
+    ]
     
     # API Security
     API_V1_STR: str = "/api/v1"
