@@ -42,13 +42,13 @@ def get_decision_engine():
     """
     if settings.DECISION_POLICY == "ppo":
         try:
-            from services.decision_engine.ppo import ppo_decision_engine
+            from .ppo import ppo_decision_engine
             return ppo_decision_engine
         except Exception as exc:  # pragma: no cover
             # Log the issue and fallback
             from ...core.logging import logger
             logger.warning(f"PPO decision engine could not be loaded: {exc}. Falling back to rule‑based engine.")
-            from services.decision_engine.rule_based import rule_based_decision_engine
+            from app.services.decision_engine.rule_based import rule_based_decision_engine
             return rule_based_decision_engine
     else:
         from services.decision_engine.rule_based import rule_based_decision_engine
