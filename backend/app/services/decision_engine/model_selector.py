@@ -48,6 +48,7 @@ def get_decision_engine():
             # Log the issue and fallback
             from ...core.logging import logger
             logger.warning(f"PPO decision engine could not be loaded: {exc}. Falling back to rule‑based engine.")
+            # pyrefly: ignore [missing-import]
             from app.services.decision_engine.rule_based import rule_based_decision_engine
             return rule_based_decision_engine
     else:
