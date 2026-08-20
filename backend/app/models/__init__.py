@@ -4,6 +4,7 @@ from app.models.metrics import ExecutionMetricRecord
 from app.models.feedback import FeedbackRecord
 from app.models.llm_model import LLMModelRecord
 from app.models.mcp import MCPToolExecutionRecord
+from app.models.observability import ExecutionTrace
 
 __all__ = [
     "RequestRecord",
@@ -12,4 +13,5 @@ __all__ = [
     "FeedbackRecord",
     "LLMModelRecord",
     "MCPToolExecutionRecord",
+    "ExecutionTrace",
 ]

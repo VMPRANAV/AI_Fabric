@@ -42,6 +42,35 @@ export interface BenchmarkComparison {
   avg_reward: number;
 }
 
+export interface ExecutionTrace {
+  request_id: string;
+  strategy?: string;
+  task_type?: string;
+  selected_model?: string;
+  prompt_version?: string;
+  start_timestamp: string;
+  end_timestamp?: string;
+  total_latency_ms?: number;
+  input_tokens?: number;
+  output_tokens?: number;
+  total_tokens?: number;
+  cost_usd?: number;
+  tool_success?: boolean;
+  model_success?: boolean;
+  quality_score?: number;
+  reward?: number;
+  state_vector?: Record<string, any>;
+  error?: string;
+  stages: StageSchema[];
+}
+
+export interface StageSchema {
+  stage: string;
+  status: string;
+  details: Record<string, any>;
+  timestamp: string;
+}
+
 export interface LLMModel {
   id: string;
   name: string;

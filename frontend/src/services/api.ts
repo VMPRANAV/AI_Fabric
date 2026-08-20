@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { QueryResponse, MetricsSummary, BenchmarkComparison, LLMModel } from '../types';
+import { QueryResponse, MetricsSummary, BenchmarkComparison, LLMModel, ExecutionTrace } from '../types';
 
 const API_BASE = '/api/v1';
 
@@ -34,6 +34,12 @@ export const apiClient = {
 
   async getModels(): Promise<LLMModel[]> {
     const res = await axios.get(`${API_BASE}/models`);
+    return res.data;
+  },
+
+  // New: Fetch execution traces for observability
+  async getTraces(limit = 20, offset = 0): Promise<ExecutionTrace[]> {
+    const res = await axios.get(`${API_BASE}/observability/traces`, { params: { limit, offset } });
     return res.data;
   },
 };

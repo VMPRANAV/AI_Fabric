@@ -1,5 +1,5 @@
 from fastapi import APIRouter
-from app.api.v1.endpoints import health, models, metrics, query, prompts, analyzer, decision
+from app.api.v1.endpoints import health, models, metrics, query, prompts, analyzer, decision, observability
 
 api_router = APIRouter()
 
@@ -9,4 +9,5 @@ api_router.include_router(analyzer.router, tags=["Query Analyzer"])
 api_router.include_router(decision.router, tags=["Decision Engine"])
 api_router.include_router(models.router, tags=["Models"])
 api_router.include_router(metrics.router, tags=["Observability"])
+api_router.include_router(observability.router, tags=["Observability"])
 api_router.include_router(query.router, tags=["Query Pipeline"])

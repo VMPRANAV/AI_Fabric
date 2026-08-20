@@ -12,6 +12,7 @@ import {
   RefreshCw 
 } from 'lucide-react';
 import PpoDashboard from '../components/PpoDashboard';
+import ObservabilityPanel from '../components/ObservabilityPanel';
 
 export const ResearchDashboard: React.FC = () => {
   const [summary, setSummary] = useState<MetricsSummary | null>(null);
@@ -127,6 +128,7 @@ export const ResearchDashboard: React.FC = () => {
         </h3>
         {/* PPO Dashboard inserted below policy table */}
         <PpoDashboard />
+        <ObservabilityPanel />
 
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs font-mono">
