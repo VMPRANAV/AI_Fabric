@@ -3,3 +3,6 @@ ai_fabric.db
 implementation_plan_m6.md
 implementation_plan.md
 test.db
+.venv/
+.pytest_cache/
+.env
