@@ -1,5 +1,5 @@
 from fastapi import APIRouter
-from app.api.v1.endpoints import health, models, metrics, query, prompts, analyzer, decision, observability
+from .endpoints import health, models, metrics, query, prompts, analyzer, decision, observability
 
 api_router = APIRouter()
 

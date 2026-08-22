@@ -4,11 +4,10 @@ from sqlalchemy import select
 from typing import List, Dict, Any
 from app.core.database import get_db
 from app.models.llm_model import LLMModelRecord
-
-router = APIRouter()
-
 from app.services.model_gateway.models import ModelGenerationRequest, ModelExecutionResult
 from app.services.model_gateway.gateway import model_gateway
+
+router = APIRouter()
 
 DEFAULT_MODELS = [
     {

@@ -13,7 +13,7 @@ from sqlalchemy.dialects import postgresql
 revision = "20230820_01_create_execution_traces"
 branch_labels = None
 depends_on = None
-
+down_revision = None
 def upgrade() -> None:
     op.create_table(
         "execution_traces",
